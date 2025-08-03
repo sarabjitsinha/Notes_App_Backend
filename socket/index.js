@@ -59,6 +59,26 @@ socket.on("logout", () => {
   }
 });
 
+    // Group message handler
+    socket.on("group-message", async ({ groupId, content }) => {
+      console.log("Inside group message")
+      const msg = await Chat.create({
+        sender: socket.user.id,
+        groupId,
+        message: content,
+        timestamp: new Date(),
+      });
+
+      io.to(groupId).emit("group-message", {
+        _id: msg._id,
+        from: msg.sender,
+        groupId,
+        content: msg.message,
+        timestamp: msg.timestamp,
+      });
+    });
+
+
 
 socket.on("share-note", ({ groupId, note }) => {
   //  validate sender is in group
@@ -70,11 +90,12 @@ socket.on("share-note", ({ groupId, note }) => {
 });
 
 
-    socket.on("private_message", async ({ to,type, content }) => {
+    socket.on("private_message", async ({ to, content }) => {
       const from = socket.user._id.toString();
+      
       if (from === to) return;
 
-             const msg = await Chat.create({
+          const msg = await Chat.create({
           sender: from,
           receiver: to,
           message: content,
@@ -83,6 +104,7 @@ socket.on("share-note", ({ groupId, note }) => {
       
 
       const toSocketId = onlineUsers.get(to);
+           
       if (toSocketId) {
         io.to(toSocketId).emit("message", {
           _id: msg._id,
@@ -93,6 +115,7 @@ socket.on("share-note", ({ groupId, note }) => {
         });
       }
 
+      
       // Also emit back to sender
       socket.emit("message", {
         _id: msg._id,
@@ -102,6 +125,10 @@ socket.on("share-note", ({ groupId, note }) => {
         timestamp: msg.timestamp,
       });
     });
+
+
+
+    
 
     socket.on("typing", ({ to }) => {
       const toSocketId = onlineUsers.get(to);
