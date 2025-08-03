@@ -1,11 +1,9 @@
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
-// import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import notesRoutes from "./routes/notesRoutes.js";
@@ -18,7 +16,7 @@ console.log("server loaded")
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "http://localhost:5173",credentials:true,exposedHeaders:["x-token"] }
+  cors: { origin: process.env.CLIENT_URL,credentials:true,exposedHeaders:["x-token"] }
 });
 
 app.use(cors({ origin: process.env.CLIENT_URL,credentials:true, exposedHeaders:["x-token"]}));

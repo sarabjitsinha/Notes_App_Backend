@@ -53,26 +53,57 @@ export const startChat = async (req, res) => {
 };
 
 // Approve/Reject request
+// export const respondChatRequest = async (req, res) => {
+//   const { groupId, accept } = req.body;
+
+//   const group = await Group.findById(groupId);
+
+//   if (!group) return res.status(404).json({ msg: "Group not found" });
+
+//   if (!group.members.includes(req.user._id)) return res.status(403).json({ msg: "Unauthorized" });
+
+//   if (accept) {
+//     group.approvedBy.push(req.user._id);
+//     await group.save();
+//     res.json({ msg: "Accepted" });
+//   } else {
+//     group.members = group.members.filter((id) => id.toString() !== req.user._id.toString());
+//     group.approvedBy = group.approvedBy.filter((id) => id.toString() !== req.user._id.toString());
+//     await group.save();
+//     res.json({ msg: "Rejected" });
+//   }
+// };
+
 export const respondChatRequest = async (req, res) => {
   const { groupId, accept } = req.body;
 
   const group = await Group.findById(groupId);
-
   if (!group) return res.status(404).json({ msg: "Group not found" });
 
-  if (!group.members.includes(req.user._id)) return res.status(403).json({ msg: "Unauthorized" });
-
+  if (!group.members.includes(req.user._id)) {
+    return res.status(403).json({ msg: "Unauthorized" });
+  }
+    console.log(group.approvedBy)
   if (accept) {
-    group.approvedBy.push(req.user._id);
+    // Avoid duplicates using addToSet logic
+    if (!group.approvedBy.some(id => id.toString() === req.user._id.toString())) {
+      group.approvedBy.push(req.user._id);
+    }
+
     await group.save();
-    res.json({ msg: "Accepted" });
+    return res.json({ msg: "Accepted" });
   } else {
-    group.members = group.members.filter((id) => id.toString() !== req.user._id.toString());
-    group.approvedBy = group.approvedBy.filter((id) => id.toString() !== req.user._id.toString());
+    group.members = group.members.filter(
+      (id) => id.toString() !== req.user._id.toString()
+    );
+    group.approvedBy = group.approvedBy.filter(
+      (id) => id.toString() !== req.user._id.toString()
+    );
     await group.save();
-    res.json({ msg: "Rejected" });
+    return res.json({ msg: "Rejected" });
   }
 };
+
 
 // Fetch messages
 export const getMessages = async (req, res) => {

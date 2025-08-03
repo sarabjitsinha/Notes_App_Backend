@@ -6,7 +6,7 @@ import Group from "../models/Group.js";
 const onlineUsers = new Map(); // userId -> socketId
 
 export const setupSocket = (io) => {
-  console.log("Hello from io")
+  
   io.use(async (socket, next) => {
     
     try {
@@ -29,9 +29,8 @@ export const setupSocket = (io) => {
     return socket.disconnect(true);
   }
 
-
+  
     const userId = socket.user._id.toString();
-    console.log("On connection",userId)
     onlineUsers.set(userId, socket.id);
     console.log(`✅ ${socket.user.username} connected : ${socket.id}`);
 
@@ -89,7 +88,6 @@ socket.on("share-note", ({ groupId, note }) => {
   });
 });
 
-
     socket.on("private_message", async ({ to, content }) => {
       const from = socket.user._id.toString();
       
@@ -126,9 +124,6 @@ socket.on("share-note", ({ groupId, note }) => {
       });
     });
 
-
-
-    
 
     socket.on("typing", ({ to }) => {
       const toSocketId = onlineUsers.get(to);
