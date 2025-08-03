@@ -2,17 +2,21 @@
 import User from "../models/User.js";
 import Group from "../models/Group.js";
 import Chat from "../models/Chat.js";
+import mongoose from "mongoose";
 
 export const getUsers = async (req, res) => {
   const users = await User.find({ _id: { $ne: req.user._id } }).select("username _id");
+  
   res.json(users);
 };
 
 export const getGroups = async (req, res) => {
+  
   const groups = await Group.find({ members: req.user._id })
-    .select("name _id members approvedBy")
-    .lean();
-
+  .select("name _id members approvedBy")
+  .lean();
+  console.log("from groups",groups)
+  
   const unread = await Chat.aggregate([
     { $match: { receiver: req.user._id, read: false, groupId: { $ne: null } } },
     { $group: { _id: "$groupId", count: { $sum: 1 } } }
@@ -29,28 +33,34 @@ export const getGroups = async (req, res) => {
 };
 
 // Start chat (creates group if not exists)
+
 export const startChat = async (req, res) => {
   const { username } = req.body;
-  const otherUser = await User.findOne({ username });
 
+  const otherUser = await User.findOne({ username });
   if (!otherUser) return res.status(404).json({ msg: "User not found" });
 
+  const userId1 = new mongoose.Types.ObjectId(req.user._id);
+  const userId2 = new mongoose.Types.ObjectId(otherUser._id);
+
   const existingGroup = await Group.findOne({
-    members: { $all: [req.user._id, otherUser._id] },
-    members: { $size: 2 }
+    members: { $all: [userId1, userId2] },
+    $expr: { $eq: [{ $size: "$members" }, 2] },
   });
 
-  if (existingGroup) return res.json({ msg: "Chat already exists", groupId: existingGroup._id });
+  if (existingGroup)
+    return res.json({ msg: "Chat already exists", groupId: existingGroup._id });
 
   const group = await Group.create({
     name: `${req.user.username}-${otherUser.username}`,
-    members: [req.user._id, otherUser._id],
-    approvedBy: [req.user._id],
-    createdBy: req.user._id
+    members: [userId1, userId2],
+    approvedBy: [userId1],
+    createdBy: userId1,
   });
 
   res.status(201).json({ group });
 };
+
 
 // Approve/Reject request
 

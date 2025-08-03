@@ -46,11 +46,9 @@ export const setupSocket = (io) => {
   }
 });
 
-
 socket.on("logout", () => {
   const userId = socket.user?._id?.toString();
-
-  if (userId && onlineUsers.has(userId)) {
+    if (userId && onlineUsers.has(userId)) {
     onlineUsers.delete(userId);
     console.log(`🔒 ${socket.user.username} logged out via logout event`);
 
