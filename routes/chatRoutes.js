@@ -6,13 +6,15 @@ import {
   getGroups,
   startChat,
   respondChatRequest,
-  getMessages
+  getMessages,
+  getGroupById
 } from "../controllers/chatController.js";
 
 const router = express.Router();
 
 router.get("/users", protect, getUsers);
 router.get("/groups", protect, getGroups);
+router.get("/groups/:id",protect,getGroupById)
 router.post("/start", protect, startChat);
 router.post("/respond", protect, respondChatRequest);
 router.get("/messages/:type/:id", protect, getMessages);
