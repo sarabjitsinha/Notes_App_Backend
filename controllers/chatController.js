@@ -15,8 +15,7 @@ export const getGroups = async (req, res) => {
   const groups = await Group.find({ members: req.user._id })
   .select("name _id members approvedBy")
   .lean();
-  console.log("from groups",groups)
-  
+   
   const unread = await Chat.aggregate([
     { $match: { receiver: req.user._id, read: false, groupId: { $ne: null } } },
     { $group: { _id: "$groupId", count: { $sum: 1 } } }
@@ -34,28 +33,65 @@ export const getGroups = async (req, res) => {
 
 // Start chat (creates group if not exists)
 
+// export const startChat = async (req, res) => {
+//   const { username } = req.body;
+
+//   const otherUser = await User.findOne({ username });
+//   if (!otherUser) return res.status(404).json({ msg: "User not found" });
+
+//   // Prevent self-chat
+//   if (otherUser._id.equals(req.user._id)) {
+//     return res.status(400).json({ msg: "Cannot start chat with yourself" });
+//   }
+
+//   const userId1 = req.user._id;
+//   const userId2 = otherUser._id;
+
+//   const existingGroup = await Group.findOne({
+//     members: { $all: [userId1, userId2] },
+//     $expr: { $eq: [{ $size: "$members" }, 2] },
+//   });
+
+//   if (existingGroup)
+//     return res.json({ msg: "Chat already exists", groupId: existingGroup._id });
+
+//   const group = await Group.create({
+//     name: `${req.user.username}-${otherUser.username}`,
+//     members: [userId1, userId2],
+//     approvedBy: [userId1],
+//     createdBy: userId1,
+//   });
+
+//   res.status(201).json({ group });
+// };
+
+
+
+
 export const startChat = async (req, res) => {
   const { username } = req.body;
-
   const otherUser = await User.findOne({ username });
+
   if (!otherUser) return res.status(404).json({ msg: "User not found" });
 
-  const userId1 = new mongoose.Types.ObjectId(req.user._id);
-  const userId2 = new mongoose.Types.ObjectId(otherUser._id);
+  const userId1 = req.user._id.toString();
+  const userId2 = otherUser._id.toString();
 
+  // Look for any group where both users are members
   const existingGroup = await Group.findOne({
     members: { $all: [userId1, userId2] },
-    $expr: { $eq: [{ $size: "$members" }, 2] },
+    $expr: { $eq: [{ $size: "$members" }, 2] }
   });
 
-  if (existingGroup)
+  if (existingGroup) {
     return res.json({ msg: "Chat already exists", groupId: existingGroup._id });
+  }
 
   const group = await Group.create({
     name: `${req.user.username}-${otherUser.username}`,
     members: [userId1, userId2],
     approvedBy: [userId1],
-    createdBy: userId1,
+    createdBy: userId1
   });
 
   res.status(201).json({ group });
@@ -63,36 +99,30 @@ export const startChat = async (req, res) => {
 
 
 // Approve/Reject request
-
 export const respondChatRequest = async (req, res) => {
   const { groupId, accept } = req.body;
-
-  const group = await Group.findById(groupId);
+    const group = await Group.findById(groupId);
   if (!group) return res.status(404).json({ msg: "Group not found" });
 
-  if (!group.members.includes(req.user._id)) {
+  if (!group.members.map(id => id.toString()).includes(req.user._id.toString())) {
     return res.status(403).json({ msg: "Unauthorized" });
   }
-    console.log(group.approvedBy)
+
   if (accept) {
-    // Avoid duplicates using addToSet logic
-    if (!group.approvedBy.some(id => id.toString() === req.user._id.toString())) {
+    if (!group.approvedBy.map(id => id.toString()).includes(req.user._id.toString())) {
       group.approvedBy.push(req.user._id);
     }
 
     await group.save();
     return res.json({ msg: "Accepted" });
-  } else {
-    group.members = group.members.filter(
-      (id) => id.toString() !== req.user._id.toString()
-    );
-    group.approvedBy = group.approvedBy.filter(
-      (id) => id.toString() !== req.user._id.toString()
-    );
-    await group.save();
-    return res.json({ msg: "Rejected" });
+
+  }
+   else {
+    await Group.findByIdAndDelete(groupId);
+    return res.json({ msg: "Group deleted due to all rejections" });
   }
 };
+
 
 
 // Fetch messages
