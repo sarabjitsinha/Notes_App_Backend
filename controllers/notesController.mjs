@@ -2,8 +2,6 @@ import mongoose from "mongoose";
 import Note from "../models/Note.js";
 import Log from "../models/Log.js";
 
-
-
 // Create a new note
 export const createNote = async (req, res) => {
   try {

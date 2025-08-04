@@ -3,9 +3,6 @@ import User from "../models/User.js";
 import Group from "../models/Group.js";
 import Chat from "../models/Chat.js";
 
-
-
-
 export const getGroupById = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id)
